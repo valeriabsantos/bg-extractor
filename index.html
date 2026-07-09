@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extrator de Boletim Geral </title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #0a1628;
+  color: #dde3ef;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+header {
+  background: linear-gradient(135deg, #0d2045 0%, #091830 100%);
+  padding: 18px 32px;
+  border-bottom: 3px solid #1a4a80;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+header .logo { display: flex; align-items: center; gap: 14px; }
+header .logo-icon { font-size: 2rem; }
+header h1 { font-size: 1.25rem; color: #e8edf8; letter-spacing: 0.3px; }
+header p  { font-size: 0.8rem; color: #6a80aa; margin-top: 2px; }
+.badge {
+  background: #12305a;
+  border: 1px solid #2a5a9a;
+  color: #7fb3d3;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+/* ── Layout ── */
+.container { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+
+/* ── Upload ── */
+.upload-area {
+  border: 2px dashed #2a4a7a;
+  border-radius: 14px;
+  padding: 56px 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: #0d2045;
+  position: relative;
+}
+.upload-area:hover  { border-color: #4a8abf; background: #102348; }
+.upload-area.active { border-color: #2196f3; background: #0d2a50; border-style: solid; }
+.upload-icon { font-size: 2.8rem; margin-bottom: 12px; }
+.upload-title { font-size: 1.05rem; color: #7fb3d3; margin-bottom: 6px; }
+.upload-sub   { font-size: 0.82rem; color: #4a6080; }
+.upload-loaded { font-size: 0.85rem; color: #5cbf8a; margin-top: 10px; font-weight: 600; }
+
+/* ── Info bar ── */
+.info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  background: #0e2040;
+  border: 1px solid #1a3a6a;
+  border-radius: 10px;
+  padding: 13px 20px;
+  margin: 22px 0 18px;
+  font-size: 0.83rem;
+  color: #7a90b8;
+}
+.info-bar strong { color: #c8d8f0; }
+
+/* ── Controls ── */
+.controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.input-wrap {
+  flex: 1;
+  min-width: 260px;
+}
+.unit-input {
+  width: 100%;
+  background: #0d2045;
+  border: 1px solid #2a4a7a;
+  color: #dde3ef;
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 0.93rem;
+  transition: border-color 0.2s;
+}
+.unit-input:focus { outline: none; border-color: #4a8abf; }
+.unit-input::placeholder { color: #3a5070; }
+
+.btn-search {
+  background: #1a4a80;
+  color: #c0d8f8;
+}
+.btn-search:hover { background: #2a6ab8; }
+
+/* ── Unit chips ── */
+.unit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+.chips-label {
+  font-size: 0.74rem;
+  color: #4a6080;
+  align-self: center;
+  white-space: nowrap;
+}
+.unit-chip {
+  background: #0f2850;
+  border: 1px solid #2a4a6a;
+  color: #7fb3d3;
+  padding: 4px 12px;
+  border-radius: 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.2px;
+}
+.unit-chip:hover { background: #1a4a7a; border-color: #4a8abf; color: #c0e0ff; }
+
+button {
+  padding: 11px 22px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-export {
+  background: #1c6e3e;
+  color: #c8f0d8;
+}
+.btn-export:hover   { background: #27a85e; }
+.btn-export:disabled { background: #1a3a28; color: #3a6050; cursor: not-allowed; }
+.btn-pdf {
+  background: #6e1c1c;
+  color: #f0c8c8;
+}
+.btn-pdf:hover   { background: #a83027; }
+.btn-pdf:disabled { background: #3a1818; color: #604040; cursor: not-allowed; }
+
+/* ── Section cards ── */
+.sections-grid { display: flex; flex-direction: column; gap: 14px; }
+
+.section-card {
+  background: #0d2045;
+  border: 1px solid #1a3a6a;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.section-header {
+  background: #0f2850;
+  padding: 13px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.section-header:hover { background: #122e5a; }
+.section-title { font-size: 0.92rem; color: #7fb3d3; font-weight: 600; }
+.section-badge {
+  background: #1a4a7a;
+  color: #7fb3d3;
+  padding: 3px 11px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.section-body { display: none; }
+.section-body.open { display: block; }
+
+/* ── Table ── */
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  background: #081830;
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 0.73rem;
+  color: #6a80aa;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+tbody td {
+  padding: 11px 16px;
+  border-bottom: 1px solid #152840;
+  font-size: 0.87rem;
+  vertical-align: top;
+  line-height: 1.45;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #0e2850; }
+
+.emp-name { font-weight: 600; color: #d0dff8; }
+.emp-ci   { color: #6a80aa; white-space: nowrap; font-size: 0.82rem; }
+
+/* ── Tags ── */
+.tag {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.tag-falta      { background: #4a0a0a; color: #ff9090; }
+.tag-transf     { background: #003840; color: #40c8d8; }
+.tag-agregacao  { background: #3a1800; color: #ff9050; }
+.tag-disciplina { background: #3a1000; color: #ffaa40; }
+.tag-justica    { background: #280040; color: #cc70ff; }
+.tag-elogio     { background: #003818; color: #50e090; }
+.tag-servico    { background: #001838; color: #5090d0; }
+.tag-instrucao  { background: #1a1a00; color: #d0c050; }
+.tag-geral      { background: #181828; color: #8080a0; }
+
+.motivo {
+  font-size: 0.81rem;
+  color: #8a9ab8;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+  max-height: 5.4em;
+}
+
+/* ── States ── */
+.empty-state {
+  padding: 48px 20px;
+  text-align: center;
+  color: #3a5070;
+}
+.empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+.empty-state p { font-size: 0.9rem; }
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 50px 20px;
+  gap: 16px;
+  color: #6a90b8;
+  font-size: 0.9rem;
+}
+.spinner {
+  width: 38px; height: 38px;
+  border: 3px solid #1a3a6a;
+  border-top-color: #4a8abf;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Summary bar ── */
+.summary {
+  background: #081e3a;
+  border: 1px solid #1a3560;
+  border-radius: 8px;
+  padding: 10px 18px;
+  margin-bottom: 18px;
+  font-size: 0.83rem;
+  color: #7a90b8;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.summary strong { color: #c0d0f0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚔️</div>
+    <div>
+      <h1>Extrator de Boletim Geral</h1>
+      <p>Filtre funcionários por unidade em qualquer BG publicado</p>
+    </div>
+  </div>
+  <div class="badge">OSTENSIVO</div>
+</header>
+
+<div class="container">
+
+  <!-- Upload -->
+  <div class="upload-area" id="uploadArea"
+       onclick="document.getElementById('fileInput').click()"
+       ondragover="onDragOver(event)"
+       ondragleave="onDragLeave(event)"
+       ondrop="onDrop(event)">
+    <input type="file" id="fileInput" accept=".pdf" style="display:none" onchange="handleFile(this.files[0])">
+    <div class="upload-icon">📄</div>
+    <div class="upload-title">Clique ou arraste o PDF do Boletim Geral aqui</div>
+    <div class="upload-sub">Arquivo .pdf — BG nº XXX </div>
+    <div class="upload-loaded" id="uploadedName"></div>
+  </div>
+
+  <!-- Controls (hidden until PDF loaded) -->
+  <div id="mainControls" style="display:none">
+    <div class="info-bar" id="infoBar"></div>
+
+    <div class="controls">
+      <div class="input-wrap">
+        <input type="text" id="unitInput" class="unit-input"
+               placeholder="Digite a unidade: ex. 11ª CICOM, ROCAM, 53.0, CPA LESTE, 2º BPM…"
+               onkeydown="if(event.key==='Enter') onUnitChange()" />
+      </div>
+      <button class="btn-search" onclick="onUnitChange()">🔍 Filtrar</button>
+      <button class="btn-export" id="exportBtn"    onclick="exportWord()" disabled>📄 Exportar Word</button>
+      <button class="btn-pdf"    id="exportPdfBtn" onclick="exportPdf()"  disabled>🗒️ Exportar PDF</button>
+    </div>
+
+    <div id="unitChips" class="unit-chips"></div>
+
+    <div id="results">
+      <div class="empty-state">
+        <div class="icon">🔎</div>
+        <p>Digite a sigla da unidade acima (ou clique num chip) e pressione <strong>Filtrar</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingArea" style="display:none">
+    <div class="loading">
+      <div class="spinner"></div>
+      <span>Extraindo e analisando o PDF...</span>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ─────────────────────────────────────────────
+//  PDF.js setup
+// ─────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let DOC = null;  // Parsed document data
+
+// ─────────────────────────────────────────────
+//  Drag & drop
+// ─────────────────────────────────────────────
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('uploadArea').classList.add('active');
+}
+function onDragLeave(e) {
+  document.getElementById('uploadArea').classList.remove('active');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadArea').classList.remove('active');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+}
+
+// ─────────────────────────────────────────────
+//  Load PDF
+// ─────────────────────────────────────────────
+async function handleFile(file) {
+  if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
+    alert('Por favor, selecione um arquivo PDF válido.');
+    return;
+  }
+
+  document.getElementById('loadingArea').style.display = 'block';
+  document.getElementById('mainControls').style.display = 'none';
+
+  try {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+
+    // Extract lines from each page, preserving vertical order
+    const allLines = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page    = await pdf.getPage(p);
+      const content = await page.getTextContent();
+
+      // Group items by rounded Y position (= same line)
+      const byY = new Map();
+      for (const item of content.items) {
+        if (!item.str.trim()) continue;
+        const y = Math.round(item.transform[5]);
+        if (!byY.has(y)) byY.set(y, []);
+        byY.get(y).push({ x: item.transform[4], str: item.str });
+      }
+
+      // Sort Y descending (PDF coordinate: 0 = bottom)
+      const sortedYs = [...byY.keys()].sort((a, b) => b - a);
+      for (const y of sortedYs) {
+        const items = byY.get(y).sort((a, b) => a.x - b.x);
+        const line  = items.map(i => i.str).join(' ').replace(/\s+/g, ' ').trim();
+        if (line) allLines.push(line);
+      }
+    }
+
+    const fullText = allLines.join('\n');
+
+    DOC = parseDocument(fullText, file.name, pdf.numPages);
+
+    // Populate UI
+    document.getElementById('uploadedName').textContent = '✔ ' + file.name;
+    document.getElementById('infoBar').innerHTML =
+      `<span><strong>BG nº:</strong> ${DOC.bgNumber || '?'}</span>` +
+      `<span><strong>Data:</strong> ${DOC.bgDate || '?'}</span>` +
+      `<span><strong>Unidades detectadas:</strong> ${DOC.units.length} — veja os chips abaixo ou digite livremente</span>` +
+      `<span><strong>Páginas:</strong> ${pdf.numPages}</span>`;
+
+    populateUnits(DOC.units);
+
+    document.getElementById('loadingArea').style.display = 'none';
+    document.getElementById('mainControls').style.display = 'block';
+
+  } catch (err) {
+    document.getElementById('loadingArea').style.display = 'none';
+    alert('Erro ao processar o PDF:\n' + err.message);
+    console.error(err);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Parse document
+// ─────────────────────────────────────────────
+function parseDocument(text, filename, numPages) {
+  const bgNumMatch  = text.match(/BOLETIM GERAL(?:\s+OSTENSIVO)?\s+N[°º]\s*(\d+)/i)
+                   || filename.match(/BG[_\s]*(\d+)/i);
+  const bgDateMatch = text.match(/(\d{1,2}\s+de\s+\w+\s+de\s+\d{4})/i);
+
+  const bgNumber = bgNumMatch  ? bgNumMatch[1]  : null;
+  const bgDate   = bgDateMatch ? bgDateMatch[1] : null;
+
+  const parts = splitParts(text);
+  const units = extractUnits(text);
+
+  return { bgNumber, bgDate, parts, units, fullText: text, numPages };
+}
+
+// ─────────────────────────────────────────────
+//  Split into 5 parts
+// ─────────────────────────────────────────────
+const PART_DEFS = [
+  { key: 'p1', label: '1ª Parte – Serviços Diários',      marker: 'PRIMEIRA PARTE' },
+  { key: 'p2', label: '2ª Parte – Instrução',             marker: 'SEGUNDA PARTE'  },
+  { key: 'p3', label: '3ª Parte – Assuntos Gerais',       marker: 'TERCEIRA PARTE' },
+  { key: 'p4', label: '4ª Parte – Justiça e Disciplina',  marker: 'QUARTA PARTE'   },
+  { key: 'p5', label: '5ª Parte – Comunicação Social',    marker: 'QUINTA PARTE'   },
+];
+
+function splitParts(text) {
+  const indices = PART_DEFS.map(p => ({
+    ...p,
+    idx: text.search(new RegExp(p.marker.replace(' ', '\\s+'), 'i'))
+  }));
+
+  return indices.map((p, i) => {
+    if (p.idx === -1) return { ...p, text: '' };
+    const end = (i < indices.length - 1 && indices[i+1].idx !== -1)
+      ? indices[i+1].idx : text.length;
+    return { ...p, text: text.slice(p.idx, end) };
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Extract all units mentioned in document
+// ─────────────────────────────────────────────
+const UNIT_PATTERNS = [
+  /\d+[ªº°a]\s*CICOM(?:\/[A-Z]+)?/gi,
+  /\d+[°º]\s*BPM(?:[\s\-][A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ]+)*/gi,
+  /CPA\s+(?:NORTE|SUL|LESTE|OESTE|C-SUL\/C-OESTE|CENTRO-SUL\/C-OESTE|CENTRO(?:-SUL)?)/gi,
+  /CPE\b/gi,
+  /BPGDA\b/gi,
+  /\d*[°º]?\s*BPCHQ(?:[-\s]ROCAM)?/gi,
+  /CIA\s+(?:CG|PMAM)\b/gi,
+  /CMPM\s+(?:I{1,3}|IV|VI{0,3}|IX|X{0,3}|\d+)/gi,
+  /RMP\s+PMAM\b/gi,
+  /COPAMB\b/gi,
+  /\d+[ªº°a]\s*CIPM/gi,
+  /DPA(?:-\d+)?(?:\/[A-Z]+)*/gi,
+  /SSP[-\s]?AM\b/gi,
+  /\b(?:CPM|ROCAM|CECOPOM|COPE|MARTE)\b/gi,
+  /\d+[°º]\s*GPM(?:\/[A-Z]+)*/gi,
+];
+
+function extractUnits(text) {
+  const set = new Set();
+
+  for (const pat of UNIT_PATTERNS) {
+    for (const m of text.matchAll(pat)) {
+      const u = m[0].trim().replace(/\s+/g, ' ').toUpperCase();
+      if (u.length > 2) set.add(u);
+    }
+  }
+
+  // Clean up similar entries (e.g. "2º BPCHQ" and "2° BPCHQ")
+  const normalized = new Map();
+  for (const u of set) {
+    const key = u.replace(/[°º]/g, 'º');
+    if (!normalized.has(key)) normalized.set(key, u);
+  }
+
+  return [...normalized.values()].sort();
+}
+
+// ─────────────────────────────────────────────
+//  Populate unit chips (detected units)
+// ─────────────────────────────────────────────
+function populateUnits(units) {
+  const container = document.getElementById('unitChips');
+  container.innerHTML = '';
+  if (!units.length) return;
+
+  const label = document.createElement('span');
+  label.className = 'chips-label';
+  label.textContent = 'Detectadas:';
+  container.appendChild(label);
+
+  for (const u of units) {
+    const chip = document.createElement('span');
+    chip.className = 'unit-chip';
+    chip.textContent = u;
+    chip.title = 'Clique para filtrar por ' + u;
+    chip.onclick = () => {
+      document.getElementById('unitInput').value = u;
+      onUnitChange();
+    };
+    container.appendChild(chip);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  On unit filter (text input or chip click)
+// ─────────────────────────────────────────────
+function onUnitChange() {
+  const unit = document.getElementById('unitInput').value.trim();
+  if (!unit || !DOC) {
+    document.getElementById('results').innerHTML =
+      `<div class="empty-state"><div class="icon">🔎</div><p>Digite a sigla da unidade acima e pressione Filtrar</p></div>`;
+    document.getElementById('exportBtn').disabled    = true;
+  document.getElementById('exportPdfBtn').disabled = true;
+    return;
+  }
+
+  const results = DOC.parts.map(part => ({
+    label:     part.label,
+    employees: extractEmployeesInPart(part, unit)
+  }));
+
+  renderResults(results, unit);
+  window._results = results;
+  window._unit    = unit;
+  const _noResults = results.every(r => r.employees.length === 0);
+  document.getElementById('exportBtn').disabled    = _noResults;
+  document.getElementById('exportPdfBtn').disabled = _noResults;
+}
+
+// ─────────────────────────────────────────────
+//  Extract employees per part
+// ─────────────────────────────────────────────
+function extractEmployeesInPart(part, unit) {
+  const employees = [];
+  const seen = new Set();
+
+  function add(list) {
+    for (const e of list) {
+      // judicial entries may repeat for same person on different dates
+      const key = e.name.trim() + '|' + e.ci + '|' + (e.date || '');
+      if (!seen.has(key) && e.name.trim().length > 4) {
+        seen.add(key);
+        employees.push(e);
+      }
+    }
+  }
+
+  // 1. Specific parsers first → correct tags take priority
+  if (part.key === 'p4') {
+    add(extractFromFaltasTable(part.text, unit));
+    add(extractFromFATD(part.text, unit));
+    add(extractFromJudicial(part.text, unit));
+    add(extractFromElogio(part.text, unit));
+  }
+  if (part.key === 'p3') {
+    add(extractFromPortarias(part.text, unit));
+    add(extractFromLTS(part.text, unit));
+  }
+  if (part.key === 'p1') {
+    add(extractFromServicos(part.text, unit));
+  }
+
+  // 2. Generic block scan as fallback
+  add(extractFromBlocks(part.text, unit, part.key));
+
+  return employees;
+}
+
+// ─────────────────────────────────────────────
+//  Generic block extractor
+// ─────────────────────────────────────────────
+// Military rank prefixes
+const RANK_RE = /(?:CEL|TEN\s*CEL|MAJ|CAP|1[°º]?\s*TEN|2[°º]?\s*TEN|SUB\s*TEN|SUBTEN|ST|1[°º]?\s*SGT|2[°º]?\s*SGT|3[°º]?\s*SGT|CB|SD)/;
+
+// Full employee match: RANK [QXPM] NAME CI
+const EMP_RE = new RegExp(
+  '(' + RANK_RE.source + ')' +
+  '\\s+(?:Q[A-Z]+PM\\s+|PM\\s+)?' +
+  '([A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ][A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ\\s]{4,60}?)' +
+  '\\s+(\\d{4,5})\\b',
+  'gi'
+);
+
+// Numeric OPM code match: RANK PM 53.0 NAME (CI)
+const OPM_EMP_RE = new RegExp(
+  '(' + RANK_RE.source + ')' +
+  '\\s+PM\\s+' +
+  '(\\d{1,3}\\.\\d)' +
+  '\\s+([A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ][\\s\\S]{3,60}?)' +
+  '\\s*\\((\\d{4,5})\\)',
+  'gi'
+);
+
+function extractFromBlocks(text, unit, partKey) {
+  const results = [];
+  const unitRe  = buildUnitRe(unit);
+
+  // Split by paragraph breaks
+  const blocks = text.split(/\n{2,}|\n(?=[A-Z]{4})/);
+
+  for (const block of blocks) {
+    if (!unitRe.test(block)) continue;
+    results.push(...parseEmployeesInBlock(block, partKey));
+  }
+
+  // Also: sliding window of 8 lines centred on unit mention
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (!unitRe.test(lines[i])) continue;
+    const ctx = lines.slice(Math.max(0, i - 4), Math.min(lines.length, i + 12)).join('\n');
+    results.push(...parseEmployeesInBlock(ctx, partKey));
+  }
+
+  return results;
+}
+
+function parseEmployeesInBlock(block, partKey) {
+  const emps = [];
+  EMP_RE.lastIndex = 0;
+  let m;
+  while ((m = EMP_RE.exec(block)) !== null) {
+    const rank = m[1].trim();
+    const name = m[2].replace(/\b(?:Q[A-Z]+PM|PM)\b/gi, '').trim();
+    const ci   = m[3];
+    if (name.length < 5 || /^\d/.test(name)) continue;
+
+    const ctxStart = Math.max(0, m.index - 200);
+    const ctxEnd   = Math.min(block.length, m.index + m[0].length + 300);
+    const ctx      = block.slice(ctxStart, ctxEnd);
+
+    emps.push({
+      rank,
+      name,
+      ci,
+      reason: buildReason(ctx, partKey),
+      tag:    buildTag(ctx, partKey),
+    });
+  }
+  return emps;
+}
+
+// ─────────────────────────────────────────────
+//  RELAÇÃO DE FALTAS table parser
+// ─────────────────────────────────────────────
+function extractFromFaltasTable(text, unit) {
+  const results = [];
+  const unitRe  = buildUnitRe(unit);
+
+  const faltasIdx = text.search(/RELA[ÇC][ÃA]O\s+DE\s+FALTAS/i);
+  if (faltasIdx === -1) return results;
+
+  // Search "Em consequência" AFTER the table header
+  const afterTable = text.slice(faltasIdx);
+  const relEnd = afterTable.search(/Em\s+consequ[êe]ncia/i);
+  const table  = relEnd !== -1 ? afterTable.slice(0, relEnd) : afterTable.slice(0, 4000);
+  const lines  = table.split('\n');
+
+  // Row pattern: NUM RANK PM NAME CI LOTAÇÃO DATE TURNO OPM
+  const rowRe = /^(\d+)\s+((?:SD|CB|1[°º]?\s*SGT|2[°º]?\s*SGT|3[°º]?\s*SGT|SUBTEN|SUB\s*TEN|CAP|MAJ|1[°º]?\s*TEN|2[°º]?\s*TEN|TEN\s*CEL|CEL)\s+PM)\s+([A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ][A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ\s]+?)\s+(\d{4,5})\s+(.+?)\s+(\d{1,2}\/\w{2,3})\s+((?:\d+[°º]\s*TURNO|ÚNICO))\s+(.+)$/i;
+
+  for (const line of lines) {
+    const m = rowRe.exec(line.trim());
+    if (!m) continue;
+
+    const lotacao = m[5].trim().toUpperCase();
+    const opm     = m[8].trim().toUpperCase();
+
+    // Match if selected unit is in LOTAÇÃO or OPM
+    const unitNorm = unit.toUpperCase();
+    if (!unitRe.test(lotacao) && !unitRe.test(opm)) continue;
+
+    results.push({
+      rank:   m[2].trim(),
+      name:   m[3].trim(),
+      ci:     m[4],
+      reason: `Falta ao serviço escalado em ${m[6]} — ${m[7].trim()} | Lotação: ${lotacao} | OPM: ${opm}`,
+      tag:    'falta',
+    });
+  }
+  return results;
+}
+
+// ─────────────────────────────────────────────
+//  FATD (Formulário de Apuração de Transgressão)
+// ─────────────────────────────────────────────
+function extractFromFATD(text, unit) {
+  const results = [];
+  const unitRe  = buildUnitRe(unit);
+
+  // Find each FATD block
+  const fatdIdxs = [...text.matchAll(/FATD\s+N[°º\.]/gi)].map(m => m.index);
+
+  for (const start of fatdIdxs) {
+    const block = text.slice(start, start + 2000);
+
+    // Check if block mentions the unit
+    if (!unitRe.test(block)) continue;
+
+    // Extract INTERESSADO name + CI — anchor on "CI:" to handle multi-token ranks
+    const intMatch = block.match(/INTERESSADO[^:]*:\s*([A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ][^\-\n]+?)\s*[-–]\s*[\w°º\s]+?CI[:\s]+(\d{4,5})/i);
+    if (!intMatch) continue;
+
+    const name = intMatch[1].trim();
+    const ci   = intMatch[2];
+
+    // Extract SÍNTESE FÁTICA — try subpoint 1.1. first, then generic SINTESE header
+    const sinteseMatch =
+      block.match(/1\.1\.\s+([\s\S]{20,1500}?)(?:\n\s*\n|\n\s*1\.2\.|\x00)/i) ||
+      block.match(/SINT[EÉ]SE[^:]*:\s*([\s\S]{20,1500}?)(?:\n\s*\n|\x00)/i);
+    const reason = sinteseMatch
+      ? 'FATD — ' + sinteseMatch[1].replace(/\s+/g, ' ').trim().slice(0, 250)
+      : 'Apuração de transgressão disciplinar (FATD)';
+
+    results.push({ rank: '', name, ci, reason, tag: 'disciplina' });
+  }
+  return results;
+}
+
+// ─────────────────────────────────────────────
+//  Portarias (transfers / aggregations)
+// ─────────────────────────────────────────────
+function extractFromPortarias(text, unit) {
+  const results = [];
+  const unitRe  = buildUnitRe(unit);
+
+  // Each portaria starts with "PORTARIA Nº"
+  const portariaIdxs = [...text.matchAll(/PORTARIA\s+N[°º]/gi)].map(m => m.index);
+
+  for (const start of portariaIdxs) {
+    const block = text.slice(start, start + 2000);
+    if (!unitRe.test(block)) continue;
+
+    // Find RESOLVE section and extract employees
+    const resolveIdx = block.search(/R\s*E\s*S\s*O\s*L\s*V\s*E/i);
+    const resolveBlock = resolveIdx !== -1 ? block.slice(resolveIdx) : block;
+
+    // Extract: RANK QXPM NAME CI RG
+    const empRe = /\b((?:SD|CB|1[°º]?\s*SGT|2[°º]?\s*SGT|3[°º]?\s*SGT|SUBTEN|SUB\s*TEN|CAP|MAJ|1[°º]?\s*TEN|2[°º]?\s*TEN|TEN\s*CEL|CEL)\s+Q[A-Z]+PM)\s+([A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ][A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ\s]+?)\s+(\d{4,5})/gi;
+    EMP_RE.lastIndex = 0;
+    let em;
+    while ((em = empRe.exec(resolveBlock)) !== null) {
+      const name = em[2].trim();
+      if (name.length < 5) continue;
+
+      // Determine action from portaria text
+      const action = block.search(/TRANSFERIR/i) !== -1 ? 'Transferência' :
+                     block.search(/AGREGAR/i)    !== -1 ? 'Agregação' :
+                     block.search(/CEDER/i)      !== -1 ? 'Cedência' : 'Portaria';
+
+      // Extract Da...para
+      const movMatch = block.match(/Da?\s+([\w\s\/°ºª]+?)\s+para\s+(?:o|a)?\s+([\w\s\/°ºª\.]+?)[\n\r]/i);
+      const move = movMatch
+        ? `${action}: de ${movMatch[1].trim()} para ${movMatch[2].trim()}`
+        : action;
+
+      results.push({ rank: em[1].trim(), name, ci: em[3], reason: move, tag: 'transf' });
+    }
+  }
+  return results;
+}
+
+// ─────────────────────────────────────────────
+//  LTS — Licença para Tratamento de Saúde
+// ─────────────────────────────────────────────
+function extractFromLTS(text, unit) {
+  const results = [];
+  const unitRe  = buildUnitRe(unit);
+
+  // Row pattern: RANK PM OPM_CODE ... CI
+  const ROW_RE = new RegExp(
+    '(?:AL\\s+(?:OF\\s+)?)?(' + RANK_RE.source + ')' +
+    '\\s+PM\\s+' +
+    '(\\d{1,3}\\.\\d)' +
+    '[\\s\\S]{0,120}?' +
+    '(\\d{4,5})\\s*$',
+    'im'
+  );
+
+  // All-caps name (2+ words)
+  const NAME_RE  = /^[A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ]{2,}(?:\s+[A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ]{2,}){1,7}\s*$/;
+  // Lines to skip when scanning backwards for name
+  const SKIP_RE  = /^\s*(?:POR:|OBS:|TÉRMINO|RECOMENDAÇÕES:|AL\s|CB\s|SD\s|SGT|TEN|CAP|MAJ|CEL|\d{4,5}\s*$|$)/i;
+
+  const lines = text.split('\n');
+
+  for (let i = 0; i < lines.length; i++) {
+    const m = ROW_RE.exec(lines[i]);
+    if (!m) continue;
+    if (!unitRe.test(m[2])) continue;
+
+    const rank = m[1].trim() + ' PM';
+    const ci   = m[3];
+
+    // Name is ALWAYS on a line BEFORE the row — scan backward, skip metadata lines
+    let name = null;
+    for (let j = i - 1; j >= Math.max(i - 6, 0); j--) {
+      const c = lines[j].trim();
+      if (!c) continue;
+      if (SKIP_RE.test(c)) continue;
+      if (NAME_RE.test(c) && c.split(/\s+/).length >= 2) { name = c; break; }
+    }
+
+    // Tipo de licença: cabeçalho mais próximo acima (até 50 linhas)
+    const LIC_HDR_JS = /LICEN[ÇC]A\s+(?:PARA\s+TRATAMENTO\s+DE\s+SA[ÚU]DE\s*(?:PR[ÓO]PRIO|FAMILIAR)?|ESPECIAL|PR[EÊ]MIO|PATERNIDADE|MATERNIDADE|GESTANTE)/i;
+    const LIC_ABBR_JS = /\b(L\.T\.S\.P\.?|L\.T\.S\.F\.?|T\.L\.E\.?|LTS[PF]?)\b/i;
+    let licType = 'Licença para Tratamento de Saúde (LTS)';
+    for (let j = i - 1; j >= Math.max(i - 50, 0); j--) {
+      const hm = LIC_HDR_JS.exec(lines[j]);
+      if (hm) {
+        licType = hm[0].trim().replace(/\b(\w)/g, c => c.toUpperCase());
+        const am = LIC_ABBR_JS.exec(lines[j]);
+        if (am) {
+          const abbr = am[0].replace(/\./g, '').toUpperCase();
+          if (!licType.toUpperCase().includes(abbr)) licType += ` (${abbr})`;
+        }
+        break;
+      }
+    }
+
+    // POR: linha do row ou próximas 5 linhas
+    let por = '';
+    const searchLines = [lines[i], ...lines.slice(i + 1, Math.min(lines.length, i + 5))];
+    for (const ln of searchLines) {
+      const mp = ln.match(/POR:\s+(\d+\s*\([^)]+\)\s*DIA(?:S|\(S\))?\s+A\/C\s+DE\s+[\d./]+)/i);
+      if (mp) { por = mp[1].trim(); break; }
+    }
+
+    // TÉRMINO: próximas 4 linhas
+    let termino = '';
+    for (const ln of lines.slice(i + 1, Math.min(lines.length, i + 5))) {
+      const tm = ln.match(/TÉRMINO:\s*([\d./]+)/i);
+      if (tm) { termino = tm[1].trim(); break; }
+    }
+
+    const partsR = [licType];
+    if (por) partsR.push(por);
+    if (termino) partsR.push(`Término: ${termino}`);
+
+    results.push({
+      rank,
+      name: name || `Militar CI:${ci}`,
+      ci,
+      reason: partsR.join(' — '),
+      tag: 'geral',
+    });
+  }
+  return results;
+}
+
+// ─────────────────────────────────────────────
+//  Judicial summons
+// ─────────────────────────────────────────────
+const COURT_RE_JS = /(?:JU[IÍ]ZO|VARA|COMARCA|TRIBUNAL|AUDITORIA|CORREGEDORIA|DELEGACIA)[^\n]{5,100}/gi;
+const ADDR_RE_JS  = /(?:Av\.|Rua\b|\bR\.\s|Travessa|Tv\.|Alameda|Al\.|Praça|F[oó]rum)[^\n]{10,200}/gi;
+const HORA_EXT_RE = /às\s+(?:(\d{1,2})\s+horas?\s*(?:e\s+(\d{1,2})\s+minutos?)?|(\d{1,2})h(?:[:h]?(\d{2}))?(?:min)?)/i;
+const MEET_LINK_RE = /https?:\/\/\S+/i;
+
+function extractFromJudicial(text, unit) {
+  const results   = [];
+  const unitRe    = buildUnitRe(unit);
+  const lines     = text.split('\n');
+
+  // ── Find all "Dia" line indices ─────────────────────────────
+  const diaIdxs = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*Dia\s+\d+\s+de\s+\w+/i.test(lines[i])) diaIdxs.push(i);
+  }
+
+  // ── Stateful: track court name and address ──────────────────
+  let curCourt = '', curAddress = '';
+
+  for (let k = 0; k < diaIdxs.length; k++) {
+    const diaI  = diaIdxs[k];
+    const endI  = k + 1 < diaIdxs.length ? diaIdxs[k + 1] : Math.min(diaI + 40, lines.length);
+    const prevI = k > 0 ? diaIdxs[k - 1] + 1 : Math.max(0, diaI - 15);
+
+    // Update court/address from lines between previous Dia and this one
+    for (let j = prevI; j < diaI; j++) {
+      const ln = lines[j];
+      COURT_RE_JS.lastIndex = 0;
+      const cm = COURT_RE_JS.exec(ln);
+      if (cm && !cm[0].includes('@') && !cm[0].toLowerCase().includes('http')) {
+        curCourt = cm[0].trim();
+      }
+      ADDR_RE_JS.lastIndex = 0;
+      const am = ADDR_RE_JS.exec(ln);
+      if (am && !am[0].includes('@')) curAddress = am[0].trim();
+    }
+
+    const block = lines.slice(diaI, endI).join('\n');
+    if (!unitRe.test(block)) continue;
+
+    // ── Data ─────────────────────────────────────────────────
+    const dateMatch = block.match(/Dia\s+(\d{1,2}\s+de\s+\w+\s+de\s+\d{4})/i);
+    const dateStr   = dateMatch ? dateMatch[1].trim() : '';
+
+    // ── Horário (dois formatos) ───────────────────────────────
+    let horaStr = '';
+    const hm = HORA_EXT_RE.exec(block);
+    if (hm) {
+      if (hm[1]) {                                     // "X horas e Y minutos"
+        const mins = hm[2] || '00';
+        horaStr = `${hm[1]}h${mins !== '00' ? mins : ''}`;
+      } else {                                          // "09h45"
+        horaStr = `${hm[3]}h${hm[4] || ''}`;
+      }
+    }
+
+    // ── Modalidade ───────────────────────────────────────────
+    const blkLc = block.toLowerCase();
+    let modalidade = '';
+    // "presencialmente" tem prioridade sobre qualquer menção secundária a videoconferência
+    if (blkLc.includes('presencialmente'))                     modalidade = 'Presencial';
+    else if (blkLc.includes('google meet'))                    modalidade = 'Videoconferência (Google Meet)';
+    else if (blkLc.includes('videoconferência') || blkLc.includes('videoconferencia')) modalidade = 'Videoconferência';
+    else if (blkLc.includes('presencial'))                     modalidade = 'Presencial';
+
+    // ── Link ──────────────────────────────────────────────────
+    MEET_LINK_RE.lastIndex = 0;
+    const linkMatch = MEET_LINK_RE.exec(block);
+    const linkStr   = linkMatch ? linkMatch[0].replace(/[.,;)]+$/, '') : '';
+
+    // ── Processo ──────────────────────────────────────────────
+    const procMatch = block.match(/processo\s+n[°º]?\s*([\d\-\.\/]+)/i);
+    const procStr   = procMatch ? procMatch[1].trim() : '';
+
+    // ── Reason ────────────────────────────────────────────────
+    const isVideo = modalidade && /meet|videoconfer/i.test(modalidade);
+    const partsR = [];
+    if (isVideo) {
+      partsR.push('Videoconferência');
+      if (dateStr)  partsR.push(dateStr);
+      if (horaStr)  partsR.push(horaStr);
+      if (linkStr)  partsR.push(`Link: ${linkStr}`);
+    } else {
+      partsR.push('Presencial');
+      if (curAddress) partsR.push(curAddress);
+      if (dateStr)    partsR.push(dateStr);
+      if (horaStr)    partsR.push(horaStr);
+    }
+    const reason = partsR.join(' — ');
+
+    const seenCi = new Set();
+
+    EMP_RE.lastIndex = 0;
+    let m;
+    while ((m = EMP_RE.exec(block)) !== null) {
+      const name = m[2].replace(/\b(?:Q[A-Z]+PM|PM)\b/gi, '').trim();
+      if (name.length < 5 || seenCi.has(m[3])) continue;
+      seenCi.add(m[3]);
+      results.push({ rank: m[1].trim(), name, ci: m[3], date: dateStr, reason, tag: 'justica' });
+    }
+
+    OPM_EMP_RE.lastIndex = 0;
+    while ((m = OPM_EMP_RE.exec(block)) !== null) {
+      if (!unitRe.test(m[2])) continue;
+      const name = m[3].replace(/\s+/g, ' ').trim();
+      if (name.length < 5 || seenCi.has(m[4])) continue;
+      seenCi.add(m[4]);
+      results.push({ rank: m[1].trim() + ' PM', name, ci: m[4], date: dateStr, reason, tag: 'justica' });
+    }
+  }
+  return results;
+}
+
+// ─────────────────────────────────────────────
+//  Elogios / Rewards
+// ─────────────────────────────────────────────
+function extractFromElogio(text, unit) {
+  const results = [];
+  const unitRe  = buildUnitRe(unit);
+
+  const elogioIdx = text.search(/ELOGIO\s+INDIVIDUAL/i);
+  if (elogioIdx === -1) return results;
+
+  const block = text.slice(elogioIdx, elogioIdx + 3000);
+  if (!unitRe.test(block)) return results;
+
+  // First paragraph as reason
+  const lines   = block.split('\n').filter(l => l.trim());
+  const reasonLines = lines.slice(0, 5).join(' ');
+
+  EMP_RE.lastIndex = 0;
+  let m;
+  while ((m = EMP_RE.exec(block)) !== null) {
+    const name = m[2].replace(/\b(?:Q[A-Z]+PM|PM)\b/gi, '').trim();
+    if (name.length < 5) continue;
+    results.push({ rank: m[1].trim(), name, ci: m[3], reason: 'Elogio — ' + reasonLines.slice(0, 200), tag: 'elogio' });
+  }
+  return results;
+}
+
+// ─────────────────────────────────────────────
+//  Serviços Diários (Part 1)
+// ─────────────────────────────────────────────
+function extractFromServicos(text, unit) {
+  const results = [];
+  const unitRe  = buildUnitRe(unit);
+  const lines   = text.split('\n');
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!unitRe.test(line)) continue;
+
+    // Pattern: "CPA Norte - 1º Turno: 7h às 19h Cap PM Caio Cesar"
+    // or       "Oficial de Dia do Comando-Geral – 1º Turno Ten PM Polari (23537)"
+    const nameMatch = line.match(/([A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ][a-záêîôúàèìòùãõçé]+(?:\s+[A-ZÁÊÎÔÚÀÈÌÒÙÃÕÇÉ][a-záêîôúàèìòùãõçé]+){1,4})\s*(?:\((\d{4,5})\))?$/);
+    if (!nameMatch) continue;
+
+    const name = nameMatch[1].trim();
+    const ci   = nameMatch[2] || '—';
+    if (name.split(/\s+/).length < 2) continue;
+
+    const turnoMatch = line.match(/\d+[°º]?\s*Turno|ÚNICO/i);
+    const horaMatch  = line.match(/(\d+h\s*às\s*\d+h)/i);
+    results.push({
+      rank:   '',
+      name,
+      ci,
+      reason: 'Serviço escalado — ' +
+        (turnoMatch ? turnoMatch[0] + ' ' : '') +
+        (horaMatch  ? horaMatch[1] : ''),
+      tag: 'servico',
+    });
+  }
+  return results;
+}
+
+// ─────────────────────────────────────────────
+//  Helpers
+// ─────────────────────────────────────────────
+function buildUnitRe(unit) {
+  const escaped = unit
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/[°ºª]/g, '[°ºª]')
+    .replace(/\s+/g, '\\s*');
+  return new RegExp(escaped + '(?!\\d)', 'i');
+}
+
+function buildReason(ctx, partKey) {
+  const lc = ctx.toLowerCase();
+  if (lc.includes('transferir') || lc.includes('transferência'))
+    return extractTransferReason(ctx);
+  if (lc.includes('agregar') || lc.includes('agregado'))
+    return 'Agregação por determinação legal';
+  if (lc.includes('falta'))
+    return 'Falta ao serviço escalado';
+  if (lc.includes('elogio') || lc.includes('recompensa'))
+    return 'Elogio/Recompensa — ' + ctx.replace(/\s+/g, ' ').trim().slice(0, 180);
+  if (lc.includes('audiência') || lc.includes('processo') || lc.includes('tribunal') || lc.includes('vara'))
+    return extractJudicialReason(ctx);
+  if (lc.includes('transgressão') || lc.includes('disciplinar') || lc.includes('fatd'))
+    return 'Apuração de transgressão disciplinar';
+  if (lc.includes('curso') || lc.includes('formação') || lc.includes('edital'))
+    return 'Instrução / Formação';
+  if (partKey === 'p1')
+    return 'Serviço diário escalado';
+  return ctx.replace(/\s+/g, ' ').trim().slice(0, 200);
+}
+
+function extractTransferReason(ctx) {
+  const m = ctx.match(/Da?\s+([\w\s\/°ºª]+?)\s+para\s+(?:o|a)?\s+([\w\s\/°ºª\.]+)/i);
+  return m
+    ? `Transferência: de ${m[1].trim()} para ${m[2].trim()}`
+    : 'Transferência de unidade';
+}
+
+function extractJudicialReason(ctx) {
+  const proc  = ctx.match(/processo\s+n[°º]?\s*([\d\-\.\/]+)/i);
+  const court = ctx.match(/(\d+[ªº°]?\s+(?:VARA|JUIZADO|TRIBUNAL)[^,\n]{0,60})/i);
+  return (court ? court[1].trim() + ' — ' : '') +
+         'Comparecimento judicial' +
+         (proc ? ` — Processo ${proc[1]}` : '');
+}
+
+function buildTag(ctx, partKey) {
+  const lc = ctx.toLowerCase();
+  if (lc.includes('falta'))                              return 'falta';
+  if (lc.includes('transferir') || lc.includes('transf')) return 'transf';
+  if (lc.includes('agregar'))                            return 'agregacao';
+  if (lc.includes('elogio') || lc.includes('recompensa')) return 'elogio';
+  if (lc.includes('audiência') || lc.includes('vara') || lc.includes('tribunal')) return 'justica';
+  if (lc.includes('transgressão') || lc.includes('disciplinar') || lc.includes('fatd')) return 'disciplina';
+  if (partKey === 'p1') return 'servico';
+  if (partKey === 'p2') return 'instrucao';
+  return 'geral';
+}
+
+const TAG_LABELS = {
+  falta:      'FALTA',
+  transf:     'TRANSFERÊNCIA',
+  agregacao:  'AGREGAÇÃO',
+  elogio:     'ELOGIO',
+  justica:    'JUDICIAL',
+  disciplina: 'DISCIPLINA',
+  servico:    'SERVIÇO',
+  instrucao:  'INSTRUÇÃO',
+  geral:      'GERAL',
+};
+
+// ─────────────────────────────────────────────
+//  Render results
+// ─────────────────────────────────────────────
+function renderResults(results, unit) {
+  const total = results.reduce((s, r) => s + r.employees.length, 0);
+
+  if (total === 0) {
+    document.getElementById('results').innerHTML =
+      `<div class="empty-state">
+         <div class="icon">🔎</div>
+         <p>Nenhum funcionário encontrado para a unidade <strong>${unit}</strong>.</p>
+         <p style="margin-top:8px;font-size:0.78rem;color:#3a5070;">Verifique se a sigla está correta ou se esta unidade é mencionada neste BG.</p>
+       </div>`;
+    return;
+  }
+
+  let html = `<div class="summary">
+    <span><strong>Unidade filtrada:</strong> ${unit}</span>
+    <span><strong>Total encontrado:</strong> ${total} ocorrência${total !== 1 ? 's' : ''}</span>
+  </div>
+  <div class="sections-grid">`;
+
+  for (const sec of results) {
+    if (sec.employees.length === 0) continue;
+    html += `
+      <div class="section-card">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">${sec.label}</span>
+          <span class="section-badge">${sec.employees.length} funcionário${sec.employees.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="section-body open">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>CI / SI</th>
+                <th>Tipo</th>
+                <th>Motivo / Contexto</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+    for (const e of sec.employees) {
+      const tagLabel = TAG_LABELS[e.tag] || 'GERAL';
+      html += `
+              <tr>
+                <td><span class="emp-name">${e.name}</span>${e.rank ? '<br><small style="color:#4a6080;font-size:0.77rem">' + e.rank + '</small>' : ''}</td>
+                <td><span class="emp-ci">${e.ci}</span></td>
+                <td><span class="tag tag-${e.tag}">${tagLabel}</span></td>
+                <td><div class="motivo">${e.reason}</div></td>
+              </tr>`;
+    }
+
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  html += '</div>';
+  document.getElementById('results').innerHTML = html;
+}
+
+// ─────────────────────────────────────────────
+//  Toggle section
+// ─────────────────────────────────────────────
+function toggleSection(header) {
+  header.nextElementSibling.classList.toggle('open');
+}
+
+// ─────────────────────────────────────────────
+//  Export to Word (.doc)
+// ─────────────────────────────────────────────
+function exportWord() {
+  if (!DOC) return;
+  const unit = document.getElementById('unitInput').value.trim();
+  if (!unit) { alert('Selecione uma unidade antes de exportar.'); return; }
+
+  const TAG_LABELS = {
+    falta: 'FALTA', transf: 'TRANSFER\u00CANCIA', agregacao: 'AGREGA\u00C7\u00C3O',
+    elogio: 'ELOGIO', justica: 'JUDICIAL', disciplina: 'DISCIPLINA',
+    servico: 'SERVI\u00C7O', instrucao: 'INSTRU\u00C7\u00C3O', geral: 'GERAL',
+  };
+  const TAG_COLORS = {
+    falta: '#8B0000', transf: '#0040A0', agregacao: '#005500',
+    elogio: '#006060', justica: '#600060', disciplina: '#804000',
+    servico: '#003366', instrucao: '#336600', geral: '#404060',
+  };
+
+  const bgNum  = DOC.bgNum  || '?';
+  const bgDate = DOC.bgDate || '?';
+
+  let body = `<h1 style='color:#1a3a6a;font-size:16pt;margin-bottom:6px'>
+    Boletim Geral N\u00BA ${bgNum} \u2014 ${bgDate}
+  </h1>
+  <p style='color:#555;font-size:10pt;margin-bottom:18px'>Unidade: <strong>${unit}</strong></p>`;
+
+  const _res = window._results || [];
+  for (const sec of _res) {
+    const emps = sec.employees;
+    if (!emps || emps.length === 0) continue;
+    const n = emps.length;
+    body += `
+    <h2 style='color:#2a5a9a;font-size:13pt;margin-top:22px;border-bottom:1px solid #ccd'>
+      ${sec.label} <span style='font-size:10pt;color:#888'>(${n} ocorr\u00EAncia${n !== 1 ? 's' : ''})</span>
+    </h2>
+    <table border='1' cellpadding='8' cellspacing='0'
+           style='border-collapse:collapse;width:100%;font-size:10pt;margin-top:8px'>
+      <tr style='background:#1a3a6a;color:white'>
+        <th>Nome</th><th>CI / SI</th><th>Tipo</th><th>Motivo / Contexto</th>
+      </tr>`;
+    for (const e of emps) {
+      const tag   = TAG_LABELS[e.tag]  || 'GERAL';
+      const color = TAG_COLORS[e.tag] || '#404060';
+      const rank  = e.rank ? `<br><small style='color:#666'>${e.rank}</small>` : '';
+      body += `<tr>
+        <td><strong>${e.name}</strong>${rank}</td>
+        <td style='color:#555'>${e.ci}</td>
+        <td><strong style='color:${color}'>${tag}</strong></td>
+        <td style='color:#333'>${e.reason}</td>
+      </tr>`;
+    }
+    body += '</table>';
+  }
+
+  const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
+  xmlns:w='urn:schemas-microsoft-com:office:word'
+  xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'><title>BG ${bgNum} - ${unit}</title></head>
+<body style='font-family:Arial,sans-serif;font-size:11pt'>${body}</body>
+</html>`;
+
+  const blob = new Blob(['\uFEFF' + html], { type: 'application/msword' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const safeUnit = unit.replace(/[\s\/\\:*?"<>|]/g, '_');
+  a.href     = url;
+  a.download = `BG_${bgNum}_${safeUnit}.doc`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+// ─────────────────────────────────────────────
+//  Export to PDF (print dialog)
+// ─────────────────────────────────────────────
+function exportPdf() {
+  if (!DOC) return;
+  const unit = document.getElementById('unitInput').value.trim();
+  if (!unit) { alert('Selecione uma unidade antes de exportar.'); return; }
+
+  const TAG_LABELS = {
+    falta: 'FALTA', transf: 'TRANSFERÊNCIA', agregacao: 'AGREGAÇÃO',
+    elogio: 'ELOGIO', justica: 'JUDICIAL', disciplina: 'DISCIPLINA',
+    servico: 'SERVIÇO', instrucao: 'INSTRUÇÃO', geral: 'GERAL',
+  };
+  const TAG_COLORS = {
+    falta: '#8B0000', transf: '#0040A0', agregacao: '#005500',
+    elogio: '#006060', justica: '#600060', disciplina: '#804000',
+    servico: '#003366', instrucao: '#336600', geral: '#404060',
+  };
+
+  const bgNum  = DOC.bgNum  || '?';
+  const bgDate = DOC.bgDate || '?';
+  const safeUnit = unit.replace(/[\s\/\\:*?"<>|]/g, '_');
+
+  let body = `
+    <h1 style='color:#1a3a6a;font-size:18pt;margin-bottom:6px'>
+      Boletim Geral Nº ${bgNum} — ${bgDate}
+    </h1>
+    <p style='color:#555;font-size:11pt;margin-bottom:20px'>
+      Unidade: <strong>${unit}</strong>
+    </p>`;
+
+  const _res = window._results || [];
+  for (const sec of _res) {
+    const emps = sec.employees;
+    if (!emps || emps.length === 0) continue;
+    const n = emps.length;
+    body += `
+    <h2 style='color:#2a5a9a;font-size:13pt;margin-top:24px;
+               border-bottom:2px solid #aac;padding-bottom:4px'>
+      ${sec.label}
+      <span style='font-size:10pt;color:#888;font-weight:normal'>
+        (${n} ocorrência${n !== 1 ? 's' : ''})
+      </span>
+    </h2>
+    <table border='1' cellpadding='7' cellspacing='0'
+           style='border-collapse:collapse;width:100%;font-size:10pt;margin-top:8px'>
+      <tr style='background:#1a3a6a;color:white'>
+        <th style='width:22%'>Nome</th>
+        <th style='width:12%'>CI / SI</th>
+        <th style='width:13%'>Tipo</th>
+        <th>Motivo / Contexto</th>
+      </tr>`;
+    for (const e of emps) {
+      const tag   = TAG_LABELS[e.tag]  || 'GERAL';
+      const color = TAG_COLORS[e.tag] || '#404060';
+      const rank  = e.rank ? `<br><small style='color:#666'>${e.rank}</small>` : '';
+      body += `<tr>
+        <td><strong>${e.name}</strong>${rank}</td>
+        <td style='color:#555;white-space:nowrap'>${e.ci}</td>
+        <td><strong style='color:${color}'>${tag}</strong></td>
+        <td style='color:#333'>${e.reason}</td>
+      </tr>`;
+    }
+    body += '</table>';
+  }
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+  <meta charset='utf-8'>
+  <title>BG ${bgNum} - ${unit}</title>
+  <style>
+    @page { margin: 20mm 18mm; size: A4; }
+    body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; }
+    table { page-break-inside: auto; }
+    tr    { page-break-inside: avoid; page-break-after: auto; }
+    h2    { page-break-after: avoid; }
+    thead { display: table-header-group; }
+    @media print {
+      body { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  ${body}
+  <p style='margin-top:30px;font-size:8pt;color:#aaa;text-align:right'>
+    Gerado em ${new Date().toLocaleString('pt-BR')}
+  </p>
+</body>
+</html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 400);
+}
+
+// ─
+//  Toggle section
+// ─
+function toggleSection(btn) {
+  const sibling = btn.nextElementSibling;
+  if (!sibling) return;
+  sibling.classList.toggle('open');
+}
+</script>
+</body>
+</html>
