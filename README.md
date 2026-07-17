@@ -1,4 +1,4 @@
-# BG Extractor — General Bulletin Filter
+# BG Extractor — PMAM General Bulletin Filter
 
 A browser-based tool to extract and filter personnel information General Bulletins (Boletim Geral) published in PDF format.
 
@@ -27,7 +27,7 @@ Each General Bulletin is a multi-section PDF document listing all personnel-rela
 ## How to Use
 
 1. Open the [live site](https://valeriabsantos.github.io/bg-extractor/) in any modern browser
-2. Drag and drop (or click to select) a PMAM General Bulletin PDF
+2. Drag and drop (or click to select) a General Bulletin PDF
 3. Type the unit name in the filter field and press **Filtrar**
 4. Browse results grouped by bulletin section
 5. Export to Word or PDF as needed
@@ -44,7 +44,13 @@ Each General Bulletin is a multi-section PDF document listing all personnel-rela
 
 ```
 bg-extractor/
-├── index.html   # Complete application (UI + parser + export logic)
+├── .claude/
+│   └── skills/
+│       └── SKILL.md        # AI skill definition for Claude
+├── index.html              # Complete web application (UI + parser + export logic)
+├── extractor.py            # Python CLI alternative
+├── AGENTS.md               # Agent documentation and parsing rules
+├── agents.agents.md        # AI agent configuration and execution flows
 └── README.md
 ```
 
