@@ -1,4 +1,4 @@
-# BG Extractor — PMAM General Bulletin Filter
+# BG Extractor — General Bulletin Filter
 
 A browser-based tool to extract and filter personnel information General Bulletins (Boletim Geral) published in PDF format.
 
